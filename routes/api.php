@@ -20,7 +20,7 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::post('/courses/{course}/buy', [EnrollmentController::class, 'buy']); //запись на курс 
     //заказы (купленные курсы)
     Route::get('/orders', [EnrollmentController::class, 'index']);
-    Route::delete('/orders/{enrollment}', [EnrollmentController::class, 'cancel']); //отмена
+    Route::get('/orders/{enrollment}', [EnrollmentController::class, 'cancel']); //отмена
 });
 
 Route::post('/payment-webhook', [WebhookController::class, 'handle']);

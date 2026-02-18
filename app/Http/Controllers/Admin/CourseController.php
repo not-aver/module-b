@@ -34,19 +34,27 @@ class CourseController extends Controller
             'cover' => 'required|image|max:2048'
         ]);
 
-        if ($request->hasFile('cover')) {
-            $file = $request->file('cover');
-            $filename = 'mpic' . time() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('courses', $filename, 'public');
+        if ($file = $request->file('cover')) {
+            // 1. Имя по ТЗ и создание ресурса
+            $name = 'courses/mpic' . time() . '.' . $file->extension();
+            $src = ($file->extension() == 'png') ? imagecreatefrompng($file) : imagecreatefromjpeg($file);
             
-            // Создание миниатюры 300x300 с сохранением пропорций
-            $fullPath = storage_path('app/public/' . $path);
-            $manager = new ImageManager(new Driver());
-            $image = $manager->read($fullPath);
-            $image->scale(width: 300, height: 300);
-            $image->save($fullPath);
-            
-            $validated['cover'] = $path;
+            // 2. Математика: находим сторону квадрата и центр
+            $w = imagesx($src); $h = imagesy($src);
+            $size = min($w, $h);
+            $x = ($w - $size) / 2;
+            $y = ($h - $size) / 2;
+
+            // 3. Ресайз
+            $dst = imagecreatetruecolor(300, 300);
+            imagecopyresampled($dst, $src, 0, 0, $x, $y, 300, 300, $size, $size);
+
+            // 4. Сохранение (Laravel Storage + GD)
+            $fullPath = storage_path('app/public/' . $name);
+            @mkdir(dirname($fullPath), 0775, true); // Создаем папку если нет
+            ($file->extension() == 'png') ? imagepng($dst, $fullPath) : imagejpeg($dst, $fullPath);
+
+            $validated['cover'] = $name;
         }
 
         Course::create($validated);
